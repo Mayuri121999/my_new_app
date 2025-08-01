@@ -32,7 +32,7 @@ pipeline {
             steps {
                 echo "Deploying branch ${params.BRANCH_NAME} to ${params.ENV}"
 
-                withCredentials([sshUserPrivateKey(credentialsId: "${env.SSH_KEY_ID}", keyFileVariable: 'KEYFILE')]) {
+                withCredentials2([sshUserPrivateKey(credentialsId: "${env.SSH_KEY_ID}", keyFileVariable: 'KEYFILE')]) {
                     bat """
                         echo Using SSH key: %KEYFILE%
 
