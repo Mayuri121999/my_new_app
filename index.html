@@ -1,9 +1,303 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>My Static App</title>
-  </head>
-  <body>
-    <h1>Hello from EC2 via GitHub Action IN Sankey Solutions MAYURI IS ALIVE</h1>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>EC2 Static Deployment</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="Static HTML deployment status page with metadata and theme toggle." />
+  <style>
+    :root {
+      --bg: #f0f4f9;
+      --card: #ffffff;
+      --text: #1f2d3a;
+      --muted: #6b7a8c;
+      --radius: 1rem;
+      --shadow: 0 20px 40px -10px rgba(31,45,58,.15);
+      --transition: 0.35s cubic-bezier(.4,.2,.2,1);
+    }
+    [data-theme="dark"] {
+      --bg: #0f1118;
+      --card: #1f202a;
+      --text: #f0f4f9;
+      --muted: #8a99b3;
+    }
+
+    * {box-sizing:border-box;}
+    body {
+      margin:0;
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      padding:1rem;
+      line-height:1.4;
+    }
+    .container {
+      max-width: 960px;
+      width:100%;
+      padding:1rem;
+      display:grid;
+      gap:1.5rem;
+      margin-top:2rem;
+    }
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding:1.5rem 1.75rem;
+      position:relative;
+      overflow:hidden;
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+    }
+    .card + .card {margin-top:0.5rem;}
+    h1 {
+      margin:0 0 .25rem;
+      font-size:1.85rem;
+      display:flex;
+      align-items:center;
+      gap:.5rem;
+    }
+    .small {font-size:.85rem; color: var(--muted);}
+    .badge {
+      display:inline-block;
+      background:#2d89ef;
+      color:#fff;
+      padding:.25em .65em;
+      border-radius:999px;
+      font-size:.6rem;
+      font-weight:600;
+      text-transform:uppercase;
+      letter-spacing:.1em;
+    }
+    .grid {
+      display:grid;
+      grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+      gap:1rem;
+      margin-top:1rem;
+    }
+    .meta {
+      background: rgba(0,0,0,.04);
+      padding:.75rem 1rem;
+      border-radius:.5rem;
+      position:relative;
+      font-family: monospace;
+      overflow-wrap: anywhere;
+    }
+    .theme-switch {
+      position:absolute;
+      top:1rem;
+      right:1rem;
+      background: none;
+      border:2px solid var(--text);
+      padding:.5rem .75rem;
+      border-radius:999px;
+      cursor:pointer;
+      font-size:.75rem;
+      display:flex;
+      align-items:center;
+      gap:.35rem;
+      transition: var(--transition);
+    }
+    .btn {
+      background: #2d89ef;
+      color:#fff;
+      border:none;
+      padding:.65rem 1rem;
+      border-radius:.5rem;
+      cursor:pointer;
+      font-weight:600;
+      font-size:.9rem;
+      display:inline-flex;
+      align-items:center;
+      gap:.4rem;
+      transition: var(--transition);
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--muted);
+    }
+    .code {
+      background: rgba(0,0,0,.05);
+      padding:.5rem .75rem;
+      border-radius:.35rem;
+      font-family: monospace;
+      font-size:.8rem;
+      display:inline-block;
+    }
+    .label {display:block; font-size:.55rem; text-transform:uppercase; letter-spacing:.1em; margin-bottom:.25rem; color: var(--muted);}
+    .footer {
+      margin-top: auto;
+      padding:1rem;
+      font-size:.75rem;
+      text-align:center;
+      color: var(--muted);
+    }
+    .pill {
+      background: #10b981;
+      color:#fff;
+      padding:3px 10px;
+      border-radius:999px;
+      font-size:.55rem;
+      margin-right:.5rem;
+      display:inline-block;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.06), transparent 60%);
+        pointer-events:none;
+      }
+    }
+    .copy-notice {
+      position:fixed;
+      top:1rem;
+      right:1rem;
+      background:#1f2d3a;
+      color:#fff;
+      padding:.5rem 1rem;
+      border-radius:6px;
+      font-size:.8rem;
+      opacity:0;
+      transform:translateY(-10px);
+      transition: .3s ease;
+      z-index:100;
+    }
+    .show {
+      opacity:1;
+      transform:translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="copy-notice" id="copyNotice">URL copied!</div>
+
+  <div class="container" aria-label="Deployment status panel">
+    <div class="card" aria-label="Header">
+      <button class="theme-switch" aria-label="Toggle theme" id="themeToggle">🌙 Dark</button>
+      <div>
+        <h1>EC2 Static App <span class="badge" id="versionBadge">v1.0.0</span></h1>
+        <p class="small">Deployed to your EC2 instance</p>
+      </div>
+
+      <div class="grid" aria-label="Deployment metadata">
+        <div class="card" style="padding:1rem;">
+          <div class="label">Environment</div>
+          <div id="envVal">dev</div>
+        </div>
+        <div class="card" style="padding:1rem;">
+          <div class="label">Branch</div>
+          <div id="branchVal">dev</div>
+        </div>
+        <div class="card" style="padding:1rem;">
+          <div class="label">Deployed At (server time)</div>
+          <div id="clock">--:--:--</div>
+        </div>
+      </div>
+
+      <div style="margin-top:1rem; display:flex; flex-wrap:wrap; gap:1rem; align-items:center;">
+        <div>
+          <button class="btn" id="copyUrlBtn" aria-label="Copy deployment URL">Copy URL</button>
+        </div>
+        <div class="small" aria-live="polite">
+          Query args supported: <span class="code">?env=staging</span> <span class="code">?branch=main</span> <span class="code">?version=v2.3.1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" aria-label="Preview section">
+      <h2 style="margin-top:0;">Live Preview</h2>
+      <p>This is a static HTML page served from your EC2 instance. You can control the displayed metadata via URL query parameters:</p>
+      <ul>
+        <li><strong>env</strong> — sets the environment tag. e.g. <code>?env=prod</code></li>
+        <li><strong>branch</strong> — git branch deployed. e.g. <code>?branch=feature-x</code></li>
+        <li><strong>version</strong> — release/version string. e.g. <code>?version=v1.4.0</code></li>
+      </ul>
+      <p>If JavaScript is disabled, you'll still see a basic fallback:</p>
+      <noscript>
+        <div class="meta">
+          JavaScript is disabled. Showing minimal info: <br />
+          Environment: <strong>dev</strong><br />
+          Branch: <strong>dev</strong><br />
+          Version: <strong>v1.0.0</strong>
+        </div>
+      </noscript>
+    </div>
+
+    <div class="card" aria-label="Technical hints">
+      <h2 style="margin-top:0;">Tips for Jenkins Deployment</h2>
+      <ul>
+        <li>Ensure your Jenkins `scp` and `ssh` commands include `-o StrictHostKeyChecking=no` in CI to avoid interactive prompts.</li>
+        <li>Use the query string to reflect what was deployed: <code>?env=${ENV}&branch=${BRANCH_NAME}&version=${DEPLOY_VERSION}</code></li>
+        <li>Set proper ownership on the target file: <code>sudo chown www-data:www-data /var/www/html/index.html</code></li>
+        <li>Verify Nginx is running: <code>sudo systemctl status nginx</code></li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    Served from EC2. Last deployed: <span id="footerTime">--</span>
+  </div>
+
+  <script>
+    // theme toggle persistence
+    const toggle = document.getElementById('themeToggle');
+    const root = document.documentElement;
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark') root.setAttribute('data-theme', 'dark');
+    updateToggleLabel();
+
+    toggle.addEventListener('click', () => {
+      const isDark = root.getAttribute('data-theme') === 'dark';
+      root.setAttribute('data-theme', isDark ? '': 'dark');
+      localStorage.setItem('theme', isDark ? 'light' : 'dark');
+      updateToggleLabel();
+    });
+
+    function updateToggleLabel() {
+      const isDark = root.getAttribute('data-theme') === 'dark';
+      toggle.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+    }
+
+    // parse query params
+    const params = new URLSearchParams(window.location.search);
+    const env = params.get('env') || 'dev';
+    const branch = params.get('branch') || 'dev';
+    const version = params.get('version') || 'v1.0.0';
+
+    document.getElementById('envVal').textContent = env;
+    document.getElementById('branchVal').textContent = branch;
+    document.getElementById('versionBadge').textContent = version;
+
+    // live clock (client-side approximation of server time)
+    function updateClock() {
+      const now = new Date();
+      const pad = (n)=>String(n).padStart(2,'0');
+      document.getElementById('clock').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      document.getElementById('footerTime').textContent = now.toLocaleString();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // copy URL
+    const copyBtn = document.getElementById('copyUrlBtn');
+    const notice = document.getElementById('copyNotice');
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        notice.classList.add('show');
+        setTimeout(() => notice.classList.remove('show'), 1200);
+      } catch (e) {
+        alert('Copy failed: ' + e);
+      }
+    });
+  </script>
+</body>
 </html>
