@@ -268,8 +268,8 @@
 
     // parse query params
     const params = new URLSearchParams(window.location.search);
-    const env = params.get('env') || 'dev';
-    const branch = params.get('branch') || 'dev';
+    const env = params.get('env') || 'staging';
+    const branch = params.get('branch') || 'staging';
     const version = params.get('version') || 'v1.0.0';
 
     document.getElementById('envVal').textContent = env;
