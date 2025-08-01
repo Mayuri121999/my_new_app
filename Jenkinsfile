@@ -11,7 +11,7 @@ pipeline {
         SSH_KEY_ID = 'ec2-ssh-key' // Jenkins SSH credential ID
         REMOTE_USER = 'ubuntu'
         REMOTE_HOST = '51.20.181.213'
-        REMOTE_DIR = '/home/ubuntu/my_new_app'
+        REMOTE_DIR = 'my_new_app'
         // PORT = '3000'
     }
 
@@ -22,38 +22,37 @@ pipeline {
                     $class: 'GitSCM',
                     branches: [[name: "${params.BRANCH_NAME}"]],
                     userRemoteConfigs: [[
-                        url: 'https://github.com/anshulika123/static-html-ec2-deploy.git'
+                        url: 'https://github.com/Mayuri121999/my_new_app.git'
                     ]]
                 ])
             }
         }
 
-        stage('Deploy') {
+         stage('Deploy') {
             steps {
-                echo "Deploy for branch ${params.BRANCH_NAME} -- ENV: ${params.ENV}"
+                echo "Deploying branch ${params.BRANCH_NAME} to ${params.ENV}"
 
                 withCredentials([sshUserPrivateKey(credentialsId: "${env.SSH_KEY_ID}", keyFileVariable: 'KEYFILE')]) {
                     bat """
-                        echo Using key: %KEYFILE%
+                        echo Using SSH key: %KEYFILE%
 
-                        REM Remove inheritance for strict permissions
+                        REM Secure key
                         icacls "%KEYFILE%" /inheritance:r
-
-                        REM Grant Full Control to SYSTEM (adjust if your agent runs as a different user!)
                         icacls "%KEYFILE%" /grant:r "SYSTEM:F"
 
-                        REM Verify file exists
+                        REM Check key file
                         dir "%KEYFILE%"
 
-                        REM Copy the index.html
-                        scp -o StrictHostKeyChecking=no -i "%KEYFILE%" index.html ${env.REMOTE_USER}@${env.REMOTE_HOST}:${env.REMOTE_DIR}/
+                        REM Deploy file to EC2
+                        scp -o StrictHostKeyChecking=no -i "%KEYFILE%" index.html %REMOTE_USER%@%REMOTE_HOST%:%REMOTE_DIR%/
 
-                        REM Move to /var/www/html
-                        ssh -o StrictHostKeyChecking=no -i "%KEYFILE%" ${env.REMOTE_USER}@${env.REMOTE_HOST} "sudo mv ${env.REMOTE_DIR}/index.html /var/www/html/index.html"
+                        REM Move file into /var/www/html (served by nginx)
+                        ssh -o StrictHostKeyChecking=no -i "%KEYFILE%" %REMOTE_USER%@%REMOTE_HOST% ^
+                          "sudo cp %REMOTE_DIR%/index.html /var/www/html/index.html && sudo chown www-data:www-data /var/www/html/index.html && sudo chmod 644 /var/www/html/index.html"
                     """
                 }
             }
-        }
+         }
 
     }
 
