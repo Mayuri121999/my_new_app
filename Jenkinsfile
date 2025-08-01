@@ -12,7 +12,7 @@ pipeline {
         REMOTE_USER = 'ubuntu'
         REMOTE_HOST = '51.20.181.213'
         REMOTE_DIR = 'my_new_app'
-        // PORT = '3000'
+        REMOTE_HTML = '/var/www/html/index.html'
     }
 
     stages {
@@ -40,15 +40,16 @@ pipeline {
                         icacls "%KEYFILE%" /inheritance:r
                         icacls "%KEYFILE%" /grant:r "SYSTEM:F"
 
-                        REM Check key file
-                        dir "%KEYFILE%"
+                        REM Backup existing remote index.html (if any) to .previous
+                        ssh -o StrictHostKeyChecking=no -i "%KEYFILE%" %REMOTE_USER%@%REMOTE_HOST% ^
+                          "if [ -f ${REMOTE_HTML} ]; then sudo cp ${REMOTE_HTML} ${REMOTE_HTML}.previous; fi"
 
-                        REM Deploy file to EC2
+                        REM Deploy new index.html
                         scp -o StrictHostKeyChecking=no -i "%KEYFILE%" index.html %REMOTE_USER%@%REMOTE_HOST%:%REMOTE_DIR%/
 
                         REM Move file into /var/www/html (served by nginx)
                         ssh -o StrictHostKeyChecking=no -i "%KEYFILE%" %REMOTE_USER%@%REMOTE_HOST% ^
-                          "sudo cp %REMOTE_DIR%/index.html /var/www/html/index.html && sudo chown www-data:www-data /var/www/html/index.html && sudo chmod 644 /var/www/html/index.html"
+                          "sudo cp %REMOTE_DIR%/index.html ${REMOTE_HTML} && sudo chown www-data:www-data ${REMOTE_HTML} && sudo chmod 644 ${REMOTE_HTML}"
                     """
                 }
             }
@@ -58,7 +59,15 @@ pipeline {
 
     post {
         failure {
-            echo "Deployment failed. Rolling back..."
+            echo "Deployment failed. Rolling back to previous index.html..."
+            withCredentials([sshUserPrivateKey(credentialsId: "${env.SSH_KEY_ID}", keyFileVariable: 'KEYFILE')]) {
+                bat """
+                    echo Restoring previous version using SSH key: %KEYFILE%
+
+                    ssh -o StrictHostKeyChecking=no -i "%KEYFILE%" %REMOTE_USER%@%REMOTE_HOST% ^
+                      "if [ -f ${REMOTE_HTML}.previous ]; then sudo cp ${REMOTE_HTML}.previous ${REMOTE_HTML} && sudo chown www-data:www-data ${REMOTE_HTML} && sudo chmod 644 ${REMOTE_HTML}; else echo 'No previous version to roll back to'; fi"
+                """
+            }
         }
     }
 }
