@@ -189,11 +189,11 @@
       <div class="grid" aria-label="Deployment metadata">
         <div class="card" style="padding:1rem;">
           <div class="label">Environment</div>
-          <div id="envVal">main</div>
+          <div id="envVal">staging</div>
         </div>
         <div class="card" style="padding:1rem;">
           <div class="label">Branch</div>
-          <div id="branchVal">main</div>
+          <div id="branchVal">staging</div>
         </div>
         <div class="card" style="padding:1rem;">
           <div class="label">Deployed At (server time)</div>
@@ -268,8 +268,8 @@
 
     // parse query params
     const params = new URLSearchParams(window.location.search);
-    const env = params.get('env') || 'dev';
-    const branch = params.get('branch') || 'dev';
+    const env = params.get('env') || 'main';
+    const branch = params.get('branch') || 'main';
     const version = params.get('version') || 'v1.0.0';
 
     document.getElementById('envVal').textContent = env;
